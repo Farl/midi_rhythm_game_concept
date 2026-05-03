@@ -8,6 +8,7 @@
     :root {
       --bg: #f7f4ef;
       --panel: #fffdf8;
+      --panel-strong: #fff9f0;
       --ink: #252322;
       --muted: #6b655f;
       --accent: #d0502e;
@@ -59,7 +60,7 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 18px 60px rgba(64, 41, 22, 0.12);
+      box-shadow: 0 18px 48px rgba(64, 41, 22, 0.1);
       overflow: hidden;
       min-height: 0;
     }
@@ -94,15 +95,23 @@
       display: grid;
       gap: 1rem;
       overflow: auto;
+      overflow-x: hidden;
       min-height: 0;
       align-content: start;
       overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: #ccb9a6 transparent;
+    }
+
+    .editor-body > * {
+      min-width: 0;
     }
 
     .editor-footer {
       border-top: 1px solid var(--border);
-      background: #fffaf3;
+      background: var(--panel-strong);
       padding: 0.8rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
     }
 
     .section {
@@ -156,6 +165,12 @@
     .btn-row {
       display: flex;
       gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .btn-row > * {
+      min-width: 0;
+      flex: 1 1 0;
     }
 
     .btn {
@@ -166,6 +181,10 @@
       font-weight: 700;
       letter-spacing: 0.02em;
       transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.03);
     }
 
     .btn:active {
@@ -204,6 +223,7 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 0.55rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
     }
 
     .status-label {
@@ -236,6 +256,8 @@
       gap: 0.6rem;
       grid-template-rows: auto minmax(0, 1fr) auto;
       min-height: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 252, 246, 0.7) 0%, rgba(255, 250, 242, 0.95) 100%);
     }
 
     .top-bar {
@@ -247,6 +269,7 @@
       justify-content: space-between;
       gap: 0.5rem;
       flex-wrap: wrap;
+      box-shadow: inset 0 -1px 0 rgba(240, 224, 210, 0.7);
     }
 
     .top-bar h1 {
@@ -263,6 +286,18 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .badge {
+      border: 1px solid #e8c9b8;
+      background: #fff5ee;
+      color: #8a3f2b;
+      padding: 0.32rem 0.62rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 700;
     }
 
     .canvas-wrap {
@@ -317,7 +352,7 @@
     @media (max-width: 960px) {
       .layout {
         grid-template-columns: 1fr;
-        grid-template-rows: minmax(240px, 40dvh) minmax(0, 1fr);
+        grid-template-rows: minmax(260px, 44dvh) minmax(0, 1fr);
       }
 
       .key-area {
@@ -371,6 +406,10 @@
       .section h2 {
         margin-bottom: 0.52rem;
         font-size: 0.8rem;
+      }
+
+      .editor-footer {
+        padding: 0.62rem;
       }
     }
   </style>
@@ -454,6 +493,7 @@
     <section class="panel stage">
       <div class="top-bar">
         <h1>MIDI Rhythm Game Studio</h1>
+        <span class="badge">Pro Editor Layout</span>
         <div class="track-name" id="track-name">Track: waiting for MIDI...</div>
       </div>
       <div class="canvas-wrap">
@@ -473,6 +513,7 @@
         this.bpm = 120;
         this.score = 0;
         this.combo = 0;
+        this.chartNotes = [];
         this.notes = [];
         this.noteSpeed = 300;
         this.hitWindowSeconds = 0.1;
@@ -548,13 +589,20 @@
       }
 
       async start() {
-        if (!this.state.notes.length || this.state.isPlaying) {
+        if (!this.state.chartNotes.length || this.state.isPlaying) {
           return;
         }
 
         this.state.score = 0;
         this.state.combo = 0;
         this.state.isPlaying = true;
+        this.state.notes = this.state.chartNotes.map((note) => ({
+          name: note.name,
+          time: note.time,
+          duration: note.duration,
+          lane: note.lane,
+          consumed: false
+        }));
 
         await Tone.start();
         Tone.Transport.stop();
@@ -578,6 +626,7 @@
         this.state.isPlaying = false;
         Tone.Transport.stop();
         Tone.Transport.cancel();
+        Tone.Transport.seconds = 0;
         this.transportEvents = [];
         if (this.synth) {
           this.synth.dispose();
@@ -915,7 +964,8 @@
         this.engine.stop();
 
         this.state.trackName = name;
-        this.state.notes = extracted;
+        this.state.chartNotes = extracted;
+        this.state.notes = [];
         this.state.bpm = midi.header.tempos[0] ? Math.round(midi.header.tempos[0].bpm) : 120;
         this.trackName.textContent = `Track: ${name}`;
         this.refreshMetrics();
@@ -935,7 +985,7 @@
       refreshMetrics() {
         this.scoreStatus.textContent = String(this.state.score);
         this.comboStatus.textContent = String(this.state.combo);
-        this.notesStatus.textContent = String(this.state.notes.length);
+        this.notesStatus.textContent = String(this.state.chartNotes.length);
         this.bpmStatus.textContent = String(this.state.bpm);
       }
     }
