@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIDI Rhythm Game Studio</title>
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --panel: #fffdf8;
+      --ink: #252322;
+      --muted: #6b655f;
+      --accent: #d0502e;
+      --accent-soft: #f4d8cf;
+      --border: #dad1c6;
+      --success: #1f7a45;
+      --danger: #ba1f33;
+      --lane-c: #ef534f;
+      --lane-d: #f59f28;
+      --lane-e: #ffd449;
+      --lane-f: #58ba74;
+      --lane-g: #3891c6;
+      --lane-a: #8568c9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(circle at 0 0, #fff6e3 0, #fff6e300 45%),
+        radial-gradient(circle at 100% 0, #fceadf 0, #fceadf00 50%),
+        linear-gradient(155deg, #f6f0e7 0%, #f0ece5 50%, #efe6dc 100%);
+      padding: 1rem;
+    }
+
+    .layout {
+      width: min(1260px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 18px 60px rgba(64, 41, 22, 0.12);
+      overflow: hidden;
+    }
+
+    .editor-header {
+      padding: 1rem;
+      background: linear-gradient(135deg, #fef4df 0%, #fee5da 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .editor-title {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .editor-subtitle {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .editor-body {
+      padding: 1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem;
+      background: #fff;
+    }
+
+    .section h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stack {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    label {
+      font-size: 0.83rem;
+      color: var(--muted);
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    input[type="range"],
+    button {
+      width: 100%;
+      font: inherit;
+    }
+
+    input[type="file"],
+    input[type="number"] {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 0.55rem 0.6rem;
+      color: var(--ink);
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 0.7rem 0.8rem;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--accent-soft);
+      color: #5f281b;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+
+    .status-card {
+      background: #fff9f3;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem;
+    }
+
+    .status-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-value {
+      font-size: 1rem;
+      font-weight: 800;
+      margin-top: 0.22rem;
+    }
+
+    .keymap-grid {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .keymap-grid input {
+      text-transform: uppercase;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .stage {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .top-bar {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .top-bar h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .track-name {
+      color: var(--muted);
+      font-size: 0.9rem;
+      max-width: 420px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .canvas-wrap {
+      padding: 0 0.8rem 0.8rem;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 14px;
+      border: 1px solid #2b2b2b;
+      background: linear-gradient(180deg, #121212 0%, #050505 100%);
+      aspect-ratio: 4 / 3;
+      height: auto;
+    }
+
+    .key-area {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.45rem;
+      padding: 0 0.8rem 0.8rem;
+    }
+
+    .key {
+      min-height: 64px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      cursor: pointer;
+      transition: transform 80ms ease, background-color 80ms ease;
+    }
+
+    .key.active {
+      transform: translateY(1px) scale(0.99);
+      color: #fff;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .key-area {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <aside class="panel">
+      <header class="editor-header">
+        <h2 class="editor-title">Editor</h2>
+        <p class="editor-subtitle">Tune timing and control behavior live.</p>
+      </header>
+      <div class="editor-body">
+        <section class="section">
+          <h2>Song</h2>
+          <div class="stack">
+            <label for="file-input">MIDI File
+              <input type="file" id="file-input" accept=".mid,.midi">
+            </label>
+            <div class="btn-row">
+              <button class="btn btn-secondary" id="load-default-button" type="button">Load Default</button>
+            </div>
+            <p class="hint" id="file-hint">No custom file loaded.</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Playback</h2>
+          <div class="stack">
+            <label for="speed-control">Note Speed <span id="speed-value">300 px/s</span>
+              <input type="range" id="speed-control" min="180" max="520" step="5" value="300">
+            </label>
+            <label for="hit-window-control">Hit Window <span id="hit-window-value">100 ms</span>
+              <input type="range" id="hit-window-control" min="40" max="220" step="5" value="100">
+            </label>
+            <label for="volume-control">Master Volume <span id="volume-value">0 dB</span>
+              <input type="range" id="volume-control" min="-30" max="6" step="1" value="0">
+            </label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Controls</h2>
+          <div class="stack">
+            <div class="keymap-grid" id="keymap-grid"></div>
+            <div class="btn-row">
+              <button class="btn btn-secondary" id="reset-keymap-button" type="button">Reset Keymap</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Session</h2>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="start-button" type="button">Start</button>
+            <button class="btn btn-danger" id="stop-button" type="button">Stop</button>
+          </div>
+          <div class="status-grid" style="margin-top: 0.7rem;">
+            <div class="status-card">
+              <div class="status-label">Score</div>
+              <div class="status-value" id="score-status">0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Combo</div>
+              <div class="status-value" id="combo-status">0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Loaded Notes</div>
+              <div class="status-value" id="notes-status">0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">BPM</div>
+              <div class="status-value" id="bpm-status">-</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="panel stage">
+      <div class="top-bar">
+        <h1>MIDI Rhythm Game Studio</h1>
+        <div class="track-name" id="track-name">Track: waiting for MIDI...</div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" width="960" height="720"></canvas>
+      </div>
+      <div class="key-area" id="key-area"></div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.26/Tone.js"></script>
+  <script src="https://unpkg.com/@tonejs/midi"></script>
+  <script>
+    class AppState {
+      constructor() {
+        this.isPlaying = false;
+        this.trackName = "Default MIDI";
+        this.bpm = 120;
+        this.score = 0;
+        this.combo = 0;
+        this.notes = [];
+        this.noteSpeed = 300;
+        this.hitWindowSeconds = 0.1;
+        this.volumeDb = 0;
+        this.keymap = this.loadKeymap();
+      }
+
+      loadKeymap() {
+        const stored = window.localStorage.getItem("midi-rhythm-keymap");
+        if (!stored) {
+          return ["S", "D", "F", "G", "H", "J"];
+        }
+
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length === 6) {
+            return parsed.map((key) => String(key).toUpperCase().slice(0, 1) || " ");
+          }
+        } catch (_error) {
+          return ["S", "D", "F", "G", "H", "J"];
+        }
+
+        return ["S", "D", "F", "G", "H", "J"];
+      }
+
+      saveKeymap() {
+        window.localStorage.setItem("midi-rhythm-keymap", JSON.stringify(this.keymap));
+      }
+    }
+
+    class MidiService {
+      static async loadFromUrl(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Unable to fetch MIDI.");
+        }
+
+        const buffer = await response.arrayBuffer();
+        return new Midi(buffer);
+      }
+
+      static loadFromArrayBuffer(arrayBuffer) {
+        return new Midi(arrayBuffer);
+      }
+
+      static extractPlayableNotes(midi) {
+        const noteOrder = ["C", "D", "E", "F", "G", "A"];
+        const notes = midi.tracks
+          .flatMap((track) => track.notes)
+          .map((note) => {
+            const head = note.name[0];
+            const lane = noteOrder.indexOf(head);
+            return {
+              name: note.name,
+              time: note.time,
+              duration: note.duration,
+              lane,
+              consumed: lane === -1
+            };
+          })
+          .filter((note) => note.lane !== -1)
+          .sort((a, b) => a.time - b.time);
+
+        return notes;
+      }
+    }
+
+    class RhythmEngine {
+      constructor(state) {
+        this.state = state;
+        this.synth = null;
+        this.transportEvents = [];
+      }
+
+      async start() {
+        if (!this.state.notes.length || this.state.isPlaying) {
+          return;
+        }
+
+        this.state.score = 0;
+        this.state.combo = 0;
+        this.state.isPlaying = true;
+
+        await Tone.start();
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+        Tone.Transport.seconds = 0;
+
+        this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        this.synth.volume.value = this.state.volumeDb;
+
+        this.transportEvents = this.state.notes.map((note) => {
+          return Tone.Transport.schedule((time) => {
+            this.synth.triggerAttackRelease(note.name, note.duration, time);
+          }, note.time);
+        });
+
+        Tone.Transport.bpm.value = this.state.bpm;
+        Tone.Transport.start();
+      }
+
+      stop() {
+        this.state.isPlaying = false;
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+        this.transportEvents = [];
+        if (this.synth) {
+          this.synth.dispose();
+          this.synth = null;
+        }
+      }
+
+      setVolume(volumeDb) {
+        this.state.volumeDb = volumeDb;
+        if (this.synth) {
+          this.synth.volume.value = volumeDb;
+        }
+      }
+
+      attemptHit(lane) {
+        if (!this.state.isPlaying) {
+          return false;
+        }
+
+        const now = Tone.Transport.seconds;
+        const hitWindow = this.state.hitWindowSeconds;
+        const hitIndex = this.state.notes.findIndex((note) => {
+          if (note.consumed || note.lane !== lane) {
+            return false;
+          }
+
+          return Math.abs(note.time - now) <= hitWindow;
+        });
+
+        if (hitIndex === -1) {
+          this.state.combo = 0;
+          return false;
+        }
+
+        this.state.notes[hitIndex].consumed = true;
+        this.state.combo += 1;
+        this.state.score += 100 + (this.state.combo - 1) * 10;
+        return true;
+      }
+
+      updateMisses() {
+        if (!this.state.isPlaying) {
+          return;
+        }
+
+        const now = Tone.Transport.seconds;
+        const lateThreshold = this.state.hitWindowSeconds;
+        this.state.notes.forEach((note) => {
+          if (!note.consumed && note.time + lateThreshold < now) {
+            note.consumed = true;
+            this.state.combo = 0;
+          }
+        });
+      }
+    }
+
+    class Renderer {
+      constructor(canvas, state) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.state = state;
+        this.judgeLineY = canvas.height - 110;
+        this.letters = ["C", "D", "E", "F", "G", "A"];
+        this.laneColors = ["#ef534f", "#f59f28", "#ffd449", "#58ba74", "#3891c6", "#8568c9"];
+      }
+
+      render() {
+        const ctx = this.ctx;
+        const currentTime = Tone.Transport.seconds;
+        const laneWidth = this.canvas.width / 6;
+
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        for (let i = 0; i < 6; i += 1) {
+          ctx.fillStyle = i % 2 === 0 ? "#111" : "#171717";
+          ctx.fillRect(i * laneWidth, 0, laneWidth, this.canvas.height);
+        }
+
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 6; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo(i * laneWidth, 0);
+          ctx.lineTo(i * laneWidth, this.canvas.height);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "#f8f0dc";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, this.judgeLineY);
+        ctx.lineTo(this.canvas.width, this.judgeLineY);
+        ctx.stroke();
+
+        this.state.notes.forEach((note) => {
+          if (note.consumed) {
+            return;
+          }
+
+          const distance = (note.time - currentTime) * this.state.noteSpeed;
+          const y = this.judgeLineY - distance;
+          if (y < -26 || y > this.canvas.height + 26) {
+            return;
+          }
+
+          const laneX = note.lane * laneWidth + 7;
+          const width = laneWidth - 14;
+          ctx.fillStyle = this.laneColors[note.lane];
+          ctx.fillRect(laneX, y, width, 20);
+          ctx.fillStyle = "rgba(255,255,255,0.35)";
+          ctx.fillRect(laneX, y, width, 5);
+        });
+
+        ctx.fillStyle = "#faf4e5";
+        ctx.font = "bold 26px Avenir Next";
+        ctx.fillText(`Score ${this.state.score}`, 22, 38);
+        ctx.fillText(`Combo ${this.state.combo}`, 22, 70);
+
+        ctx.font = "bold 20px Avenir Next";
+        this.letters.forEach((letter, index) => {
+          ctx.fillStyle = "rgba(248, 239, 220, 0.9)";
+          ctx.fillText(letter, index * laneWidth + laneWidth / 2 - 7, this.canvas.height - 22);
+        });
+      }
+    }
+
+    class UIController {
+      constructor(state, engine, renderer) {
+        this.state = state;
+        this.engine = engine;
+        this.renderer = renderer;
+
+        this.fileInput = document.getElementById("file-input");
+        this.fileHint = document.getElementById("file-hint");
+        this.loadDefaultButton = document.getElementById("load-default-button");
+        this.startButton = document.getElementById("start-button");
+        this.stopButton = document.getElementById("stop-button");
+        this.trackName = document.getElementById("track-name");
+
+        this.speedControl = document.getElementById("speed-control");
+        this.hitWindowControl = document.getElementById("hit-window-control");
+        this.volumeControl = document.getElementById("volume-control");
+
+        this.speedValue = document.getElementById("speed-value");
+        this.hitWindowValue = document.getElementById("hit-window-value");
+        this.volumeValue = document.getElementById("volume-value");
+
+        this.scoreStatus = document.getElementById("score-status");
+        this.comboStatus = document.getElementById("combo-status");
+        this.notesStatus = document.getElementById("notes-status");
+        this.bpmStatus = document.getElementById("bpm-status");
+        this.keyArea = document.getElementById("key-area");
+        this.keymapGrid = document.getElementById("keymap-grid");
+
+        this.lanes = ["C", "D", "E", "F", "G", "A"];
+        this.laneColors = ["#ef534f", "#f59f28", "#ffd449", "#58ba74", "#3891c6", "#8568c9"];
+      }
+
+      init() {
+        this.renderKeyArea();
+        this.renderKeymapEditor();
+        this.bindEvents();
+        this.refreshMetrics();
+      }
+
+      bindEvents() {
+        this.startButton.addEventListener("click", async () => {
+          if (!this.state.notes.length) {
+            alert("Load a MIDI file first.");
+            return;
+          }
+
+          try {
+            await this.engine.start();
+          } catch (error) {
+            console.error(error);
+            alert("Unable to start playback.");
+            this.engine.stop();
+          }
+        });
+
+        this.stopButton.addEventListener("click", () => {
+          this.engine.stop();
+        });
+
+        this.fileInput.addEventListener("change", async (event) => {
+          const file = event.target.files[0];
+          if (!file) {
+            return;
+          }
+
+          try {
+            const data = await file.arrayBuffer();
+            const midi = MidiService.loadFromArrayBuffer(data);
+            this.applyMidi(file.name, midi);
+            this.fileHint.textContent = `Loaded: ${file.name}`;
+          } catch (error) {
+            console.error(error);
+            alert("Unable to parse selected MIDI file.");
+          }
+        });
+
+        this.loadDefaultButton.addEventListener("click", async () => {
+          await this.loadDefaultMidi();
+        });
+
+        this.speedControl.addEventListener("input", (event) => {
+          const speed = Number(event.target.value);
+          this.state.noteSpeed = speed;
+          this.speedValue.textContent = `${speed} px/s`;
+        });
+
+        this.hitWindowControl.addEventListener("input", (event) => {
+          const ms = Number(event.target.value);
+          this.state.hitWindowSeconds = ms / 1000;
+          this.hitWindowValue.textContent = `${ms} ms`;
+        });
+
+        this.volumeControl.addEventListener("input", (event) => {
+          const volumeDb = Number(event.target.value);
+          this.engine.setVolume(volumeDb);
+          this.volumeValue.textContent = `${volumeDb} dB`;
+        });
+
+        document.addEventListener("keydown", (event) => {
+          const key = event.key.toUpperCase();
+          const lane = this.state.keymap.indexOf(key);
+          if (lane === -1) {
+            return;
+          }
+
+          this.pressLane(lane);
+          this.engine.attemptHit(lane);
+        });
+
+        document.addEventListener("keyup", (event) => {
+          const key = event.key.toUpperCase();
+          const lane = this.state.keymap.indexOf(key);
+          if (lane === -1) {
+            return;
+          }
+
+          this.releaseLane(lane);
+        });
+      }
+
+      renderKeyArea() {
+        this.keyArea.innerHTML = "";
+        this.lanes.forEach((lane, index) => {
+          const keyButton = document.createElement("button");
+          keyButton.type = "button";
+          keyButton.className = "key";
+          keyButton.dataset.lane = String(index);
+          keyButton.textContent = `${this.state.keymap[index]} / ${lane}`;
+
+          keyButton.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            this.pressLane(index);
+            this.engine.attemptHit(index);
+          });
+
+          keyButton.addEventListener("pointerup", (event) => {
+            event.preventDefault();
+            this.releaseLane(index);
+          });
+
+          keyButton.addEventListener("pointerleave", () => {
+            this.releaseLane(index);
+          });
+
+          this.keyArea.appendChild(keyButton);
+        });
+      }
+
+      renderKeymapEditor() {
+        this.keymapGrid.innerHTML = "";
+        this.lanes.forEach((lane, index) => {
+          const wrap = document.createElement("label");
+          wrap.textContent = `Lane ${lane}`;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.maxLength = 1;
+          input.value = this.state.keymap[index];
+          input.addEventListener("input", (event) => {
+            const value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 1);
+            event.target.value = value;
+            if (!value) {
+              return;
+            }
+
+            if (this.state.keymap.includes(value) && this.state.keymap[index] !== value) {
+              event.target.value = this.state.keymap[index];
+              return;
+            }
+
+            this.state.keymap[index] = value;
+            this.state.saveKeymap();
+            this.renderKeyArea();
+          });
+          wrap.appendChild(input);
+          this.keymapGrid.appendChild(wrap);
+        });
+
+        const resetButton = document.getElementById("reset-keymap-button");
+        resetButton.addEventListener("click", () => {
+          this.state.keymap = ["S", "D", "F", "G", "H", "J"];
+          this.state.saveKeymap();
+          this.renderKeyArea();
+          this.renderKeymapEditor();
+        });
+      }
+
+      pressLane(lane) {
+        const keyElement = this.keyArea.querySelector(`[data-lane="${lane}"]`);
+        if (!keyElement) {
+          return;
+        }
+
+        keyElement.classList.add("active");
+        keyElement.style.backgroundColor = this.laneColors[lane];
+      }
+
+      releaseLane(lane) {
+        const keyElement = this.keyArea.querySelector(`[data-lane="${lane}"]`);
+        if (!keyElement) {
+          return;
+        }
+
+        keyElement.classList.remove("active");
+        keyElement.style.backgroundColor = "";
+      }
+
+      applyMidi(name, midi) {
+        const extracted = MidiService.extractPlayableNotes(midi);
+        this.engine.stop();
+
+        this.state.trackName = name;
+        this.state.notes = extracted;
+        this.state.bpm = midi.header.tempos[0] ? Math.round(midi.header.tempos[0].bpm) : 120;
+        this.trackName.textContent = `Track: ${name}`;
+        this.refreshMetrics();
+      }
+
+      async loadDefaultMidi() {
+        try {
+          const midi = await MidiService.loadFromUrl("https://bitmidi.com/uploads/98137.mid");
+          this.applyMidi("default-98137.mid", midi);
+          this.fileHint.textContent = "Loaded bundled default MIDI.";
+        } catch (error) {
+          console.error(error);
+          alert("Unable to load default MIDI. Select a local file instead.");
+        }
+      }
+
+      refreshMetrics() {
+        this.scoreStatus.textContent = String(this.state.score);
+        this.comboStatus.textContent = String(this.state.combo);
+        this.notesStatus.textContent = String(this.state.notes.length);
+        this.bpmStatus.textContent = String(this.state.bpm);
+      }
+    }
+
+    class App {
+      constructor() {
+        this.canvas = document.getElementById("game-canvas");
+        this.state = new AppState();
+        this.engine = new RhythmEngine(this.state);
+        this.renderer = new Renderer(this.canvas, this.state);
+        this.ui = new UIController(this.state, this.engine, this.renderer);
+      }
+
+      async init() {
+        this.ui.init();
+        this.state.noteSpeed = Number(document.getElementById("speed-control").value);
+        this.state.hitWindowSeconds = Number(document.getElementById("hit-window-control").value) / 1000;
+        this.engine.setVolume(Number(document.getElementById("volume-control").value));
+        await this.ui.loadDefaultMidi();
+        this.loop();
+      }
+
+      loop() {
+        this.engine.updateMisses();
+        this.renderer.render();
+        this.ui.refreshMetrics();
+        requestAnimationFrame(() => this.loop());
+      }
+    }
+
+    const app = new App();
+    app.init();
+  </script>
+</body>
+</html>
