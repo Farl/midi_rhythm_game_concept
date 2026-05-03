@@ -438,11 +438,17 @@
         <section class="section">
           <h2>Playback</h2>
           <div class="stack">
+            <label for="lead-in-control">Lead-in Space <span id="lead-in-value">1.20 s</span>
+              <input type="range" id="lead-in-control" min="0" max="2.5" step="0.05" value="1.2">
+            </label>
             <label for="speed-control">Note Speed <span id="speed-value">300 px/s</span>
               <input type="range" id="speed-control" min="180" max="520" step="5" value="300">
             </label>
             <label for="hit-window-control">Hit Window <span id="hit-window-value">100 ms</span>
               <input type="range" id="hit-window-control" min="40" max="220" step="5" value="100">
+            </label>
+            <label for="timing-offset-control">Judge Timing Offset <span id="timing-offset-value">80 ms</span>
+              <input type="range" id="timing-offset-control" min="0" max="180" step="5" value="80">
             </label>
             <label for="volume-control">Master Volume <span id="volume-value">0 dB</span>
               <input type="range" id="volume-control" min="-30" max="6" step="1" value="0">
@@ -516,6 +522,8 @@
         this.chartNotes = [];
         this.notes = [];
         this.noteSpeed = 300;
+        this.leadInSeconds = 1.2;
+        this.timingOffsetSeconds = 0.08;
         this.hitWindowSeconds = 0.1;
         this.volumeDb = 0;
         this.keymap = this.loadKeymap();
@@ -619,7 +627,7 @@
         this.state.isPlaying = true;
         this.state.notes = this.state.chartNotes.map((note) => ({
           name: note.name,
-          time: note.time,
+          time: note.time + this.state.leadInSeconds,
           duration: note.duration,
           lane: note.lane,
           consumed: false
@@ -662,12 +670,16 @@
         }
       }
 
+      getSyncedTransportTime() {
+        return Math.max(0, Tone.Transport.seconds - this.state.timingOffsetSeconds);
+      }
+
       attemptHit(lane) {
         if (!this.state.isPlaying) {
           return false;
         }
 
-        const now = Tone.Transport.seconds;
+        const now = this.getSyncedTransportTime();
         const hitWindow = this.state.hitWindowSeconds;
         const hitIndex = this.state.notes.findIndex((note) => {
           if (note.consumed || note.lane !== lane) {
@@ -693,7 +705,7 @@
           return;
         }
 
-        const now = Tone.Transport.seconds;
+        const now = this.getSyncedTransportTime();
         const lateThreshold = this.state.hitWindowSeconds;
         this.state.notes.forEach((note) => {
           if (!note.consumed && note.time + lateThreshold < now) {
@@ -716,7 +728,7 @@
 
       render() {
         const ctx = this.ctx;
-        const currentTime = Tone.Transport.seconds;
+        const currentTime = Math.max(0, Tone.Transport.seconds - this.state.timingOffsetSeconds);
         const laneWidth = this.canvas.width / 6;
 
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -787,12 +799,16 @@
         this.stopButton = document.getElementById("stop-button");
         this.trackName = document.getElementById("track-name");
 
+        this.leadInControl = document.getElementById("lead-in-control");
         this.speedControl = document.getElementById("speed-control");
         this.hitWindowControl = document.getElementById("hit-window-control");
+        this.timingOffsetControl = document.getElementById("timing-offset-control");
         this.volumeControl = document.getElementById("volume-control");
 
+        this.leadInValue = document.getElementById("lead-in-value");
         this.speedValue = document.getElementById("speed-value");
         this.hitWindowValue = document.getElementById("hit-window-value");
+        this.timingOffsetValue = document.getElementById("timing-offset-value");
         this.volumeValue = document.getElementById("volume-value");
 
         this.scoreStatus = document.getElementById("score-status");
@@ -854,6 +870,12 @@
           await this.loadDefaultMidi();
         });
 
+        this.leadInControl.addEventListener("input", (event) => {
+          const seconds = Number(event.target.value);
+          this.state.leadInSeconds = seconds;
+          this.leadInValue.textContent = `${seconds.toFixed(2)} s`;
+        });
+
         this.speedControl.addEventListener("input", (event) => {
           const speed = Number(event.target.value);
           this.state.noteSpeed = speed;
@@ -864,6 +886,12 @@
           const ms = Number(event.target.value);
           this.state.hitWindowSeconds = ms / 1000;
           this.hitWindowValue.textContent = `${ms} ms`;
+        });
+
+        this.timingOffsetControl.addEventListener("input", (event) => {
+          const ms = Number(event.target.value);
+          this.state.timingOffsetSeconds = ms / 1000;
+          this.timingOffsetValue.textContent = `${ms} ms`;
         });
 
         this.volumeControl.addEventListener("input", (event) => {
@@ -1039,8 +1067,10 @@
 
       async init() {
         this.ui.init();
+        this.state.leadInSeconds = Number(document.getElementById("lead-in-control").value);
         this.state.noteSpeed = Number(document.getElementById("speed-control").value);
         this.state.hitWindowSeconds = Number(document.getElementById("hit-window-control").value) / 1000;
+        this.state.timingOffsetSeconds = Number(document.getElementById("timing-offset-control").value) / 1000;
         this.engine.setVolume(Number(document.getElementById("volume-control").value));
         await this.ui.loadDefaultMidi();
         this.loop();
