@@ -64,6 +64,12 @@
       min-height: 0;
     }
 
+    .editor-panel {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 0;
+    }
+
     .editor-header {
       padding: 1rem;
       background: linear-gradient(135deg, #fef4df 0%, #fee5da 100%);
@@ -89,6 +95,14 @@
       gap: 1rem;
       overflow: auto;
       min-height: 0;
+      align-content: start;
+      overscroll-behavior: contain;
+    }
+
+    .editor-footer {
+      border-top: 1px solid var(--border);
+      background: #fffaf3;
+      padding: 0.8rem;
     }
 
     .section {
@@ -363,7 +377,7 @@
 </head>
 <body>
   <main class="layout">
-    <aside class="panel">
+    <aside class="panel editor-panel">
       <header class="editor-header">
         <h2 class="editor-title">Editor</h2>
         <p class="editor-subtitle">Tune timing and control behavior live.</p>
@@ -406,8 +420,10 @@
             </div>
           </div>
         </section>
+      </div>
 
-        <section class="section">
+      <section class="editor-footer">
+        <section class="section" style="margin: 0;">
           <h2>Session</h2>
           <div class="btn-row">
             <button class="btn btn-primary" id="start-button" type="button">Start</button>
@@ -432,7 +448,7 @@
             </div>
           </div>
         </section>
-      </div>
+      </section>
     </aside>
 
     <section class="panel stage">
