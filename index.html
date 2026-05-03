@@ -579,6 +579,27 @@
 
         return notes;
       }
+
+      static createFallbackChart() {
+        const pattern = ["C4", "D4", "E4", "F4", "G4", "A4", "G4", "F4"];
+        const notes = [];
+        let time = 0;
+        for (let bar = 0; bar < 12; bar += 1) {
+          for (let step = 0; step < pattern.length; step += 1) {
+            const name = pattern[(step + bar) % pattern.length];
+            const laneMap = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5 };
+            notes.push({
+              name,
+              lane: laneMap[name[0]],
+              time,
+              duration: 0.2,
+              consumed: false
+            });
+            time += 0.4;
+          }
+        }
+        return notes;
+      }
     }
 
     class RhythmEngine {
@@ -794,7 +815,7 @@
 
       bindEvents() {
         this.startButton.addEventListener("click", async () => {
-          if (!this.state.notes.length) {
+          if (!this.state.chartNotes.length) {
             alert("Load a MIDI file first.");
             return;
           }
@@ -972,14 +993,31 @@
       }
 
       async loadDefaultMidi() {
-        try {
-          const midi = await MidiService.loadFromUrl("https://bitmidi.com/uploads/98137.mid");
-          this.applyMidi("default-98137.mid", midi);
-          this.fileHint.textContent = "Loaded bundled default MIDI.";
-        } catch (error) {
-          console.error(error);
-          alert("Unable to load default MIDI. Select a local file instead.");
+        const sources = [
+          { name: "default-98137.mid", url: "https://bitmidi.com/uploads/98137.mid" },
+          { name: "twinkle.mid", url: "https://raw.githubusercontent.com/cifkao/html-midi-player/master/midifiles/twinkle.mid" },
+          { name: "bach_846.mid", url: "https://raw.githubusercontent.com/cifkao/html-midi-player/master/midifiles/bach_846.mid" }
+        ];
+
+        for (const source of sources) {
+          try {
+            const midi = await MidiService.loadFromUrl(source.url);
+            this.applyMidi(source.name, midi);
+            this.fileHint.textContent = `Loaded default: ${source.name}`;
+            return;
+          } catch (error) {
+            console.warn(`Default source failed: ${source.url}`, error);
+          }
         }
+
+        this.engine.stop();
+        this.state.trackName = "built-in-demo.chart";
+        this.state.chartNotes = MidiService.createFallbackChart();
+        this.state.notes = [];
+        this.state.bpm = 120;
+        this.trackName.textContent = "Track: built-in-demo.chart";
+        this.fileHint.textContent = "Network MIDI unavailable. Loaded built-in demo chart.";
+        this.refreshMetrics();
       }
 
       refreshMetrics() {
